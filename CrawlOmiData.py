@@ -69,7 +69,7 @@ for day in range(firstday, 365):
         he5url = url+link
 
         backoff_delay = 1
-        while backoff_delay < 100:
+        while backoff_delay < 200:
             try:
                 print 'Setting up authentication for {}'.format(link)
                 session = pydap.cas.urs.setup_session(credentials.username, credentials.password, check_url=he5url)
