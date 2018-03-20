@@ -15,7 +15,12 @@ import pyproj
 import datetime
 import numpy as np
 import pandas as pd
+import pickle
 
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+
+import folium
 
 def datetime2matlabdn(dt):
     # https://stackoverflow.com/questions/8776414/python-datetime-to-matlab-datenum
@@ -35,7 +40,10 @@ def interpolate_positions_times_velocities(ptv_matrix):
         interpolated_ptvs.append(
             interpolate_linear_position(startlat, startlong, starttime, endlat, endlong, endtime))
 
-    return np.concatenate(interpolated_ptvs, axis=1)
+        #print("{}".format(interpolated_ptvs[-1].shape))
+
+    #pickle.dump(interpolated_ptvs, open('ina.pickle', "wb"))
+    return np.concatenate(interpolated_ptvs, axis=0)
 
 
 def interpolate_linear_position(startlat, startlong, starttime, endlat, endlong, endtime):
@@ -75,6 +83,7 @@ def interpolate_linear_position(startlat, startlong, starttime, endlat, endlong,
 
 
 def load_MarineTraffic_csv(filepath):
+    # filepath = './Data/exportvesseltrack477620900.csv'
     full = pd.read_csv(filepath, skipinitialspace=True)
 
     # Convert timestamp from string to Matlab datenum
@@ -85,8 +94,35 @@ def load_MarineTraffic_csv(filepath):
     full = full.sort_values(by='TIMESTAMP', ascending=False)
 
     # Now embarrassingly throw all the data away (for now)
-    return full[['LON', 'LAT', 'TIMESTAMP']].values
+    return full[['LAT', 'LON', 'TIMESTAMP']].values
 
+
+def plot_path(ptv_matrix):
+    # fig = plt.figure(figsize=(10, 5))
+    # ax = plt.axes([0, 0, 1, 1], projection=ccrs.PlateCarree(central_longitude=180))
+    ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
+
+    # make the map global rather than have it zoom in to
+    # the extents of any plotted data
+    ax.set_global()
+
+    # ax.stock_img()
+    ax.coastlines()
+
+    ax.plot(-0.08, 51.53, 'o', transform=ccrs.PlateCarree())
+    ax.plot([-0.08, 132], [51.53, 43.17], transform=ccrs.PlateCarree())
+    ax.plot([-0.08, 132], [51.53, 43.17], transform=ccrs.Geodetic())
+
+    plt.show()
+
+
+def folium_path(ptv_matrix):
+    m = folium.Map([30, 0], zoom_start=3)
+
+    folium.PolyLine(ptv_matrix[:, :2].tolist()).add_to(m)
+    m.save('map.html')
+
+    return m
 
 # # point A: London
 # startlat = 51.5074
