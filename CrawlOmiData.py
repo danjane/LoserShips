@@ -51,7 +51,7 @@ for day in range(firstday, 365):
     date = datetime.date(2014, 1, 1) + datetime.timedelta(days=day)
     url = url_year + str(day+1).zfill(3) + '/'
 
-    print '{}\n{}'.format(date, url)
+    print('{}\n{}'.format(date, url))
     resp = urllib2.urlopen(url)
 
     # Use BeautifulSoup to parse the html looking for the he5.html links
@@ -62,6 +62,7 @@ for day in range(firstday, 365):
 
     # Just need a unique set of links, without the html orphan
     links = set(links) - set([u'html'])
+    links = [link.strip('\n') for link in links]
 
     # Bring in all the data for this day
     dfs = []
@@ -71,7 +72,7 @@ for day in range(firstday, 365):
         backoff_delay = 1
         while backoff_delay < 200:
             try:
-                print 'Setting up authentication for {}'.format(link)
+                print('Setting up authentication for {}'.format(link))
                 session = pydap.cas.urs.setup_session(credentials.username, credentials.password, check_url=he5url)
 
                 print('Connecting to data source...')
@@ -83,7 +84,7 @@ for day in range(firstday, 365):
                 datakeys = ['ColumnAmountSO2_PBL', 'Latitude', 'Longitude',
                             'RadiativeCloudFraction', 'SolarZenithAngle', 'QualityFlags_PBL']
 
-                print 'Downloading data:'
+                print('Downloading data:')
                 #print '\tTime...'
                 datadict = {'Time': nasa_times_from_dataset()}
                 for datakey in datakeys:
@@ -98,7 +99,7 @@ for day in range(firstday, 365):
                 df = df[chk]
 
                 dfs.append(df)
-                print 'Done! {} good records of {}'.format(sum(chk), chk.size)
+                print('Done! {} good records of {}'.format(sum(chk), chk.size))
 
 
             except:
