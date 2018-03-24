@@ -10,6 +10,8 @@
 #
 # NB: I probably shouldn't do this, but I'm storing the times in
 # Matlab format so I can easily do linear algebra later.
+#
+# Work in Lon-Lat (x,y)
 
 import pyproj
 import datetime
@@ -93,8 +95,8 @@ def load_MarineTraffic_csv(filepath):
 
     full = full.sort_values(by='TIMESTAMP', ascending=False)
 
-    # Now embarrassingly throw all the data away (for now)
-    return full[['LAT', 'LON', 'TIMESTAMP']].values
+    # Now embarrassingly throw most of the data away (for now)
+    return full[['LON', 'LAT', 'TIMESTAMP']].values
 
 
 def plot_path(ptv_matrix):
