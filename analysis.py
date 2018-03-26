@@ -18,7 +18,7 @@ s_pd = s_pd[chk]
 ss = satellite.convert_satellite_pandas(s_pd)
 ds = satellite.boat_satellite_distance(ptv, ss)
 pos = satellite.find_min_idx(ds)
-s_closest, so2 = satellite.investigate_interesting_boat_position(ptv[pos[0], :], s_pd, pos[1])
+s_closest, so2, idx = satellite.investigate_interesting_boat_position(ptv[pos[0], :], s_pd, pos[1])
 
 # Plot the results
 fig, ax = plt.subplots()

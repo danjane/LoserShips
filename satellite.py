@@ -69,7 +69,7 @@ def investigate_interesting_boat_position(b_vec, s_pd, idx_closest):
     # so2 detected distribution
     so2 = s_pd[idx.T]['ColumnAmountSO2_PBL'].values
 
-    return s_closest, so2
+    return s_closest, so2, idx
 
 
 def plot_histogram(s_closest, so2):
