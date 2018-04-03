@@ -57,9 +57,9 @@ def interpolate_linear_position(startlon, startlat, starttime, endlon, endlat, e
     (az12, az21, dist) = g.inv(startlon, startlat, endlon, endlat)
 
     dist /= 1000.  # switch to km
-    # calculate line string along path with segments <= 1 km
+    # calculate line string along path with segments <= 10 km
     lonlats = g.npts(startlon, startlat, endlon, endlat,
-                     1 + int(dist))
+                     1 + int(dist/10.))
 
     # npts doesn't include start/end points, so prepend/append them
     lonlats.insert(0, (startlon, startlat))
@@ -100,6 +100,12 @@ def load_MarineTraffic_csv(filepath):
 
     # Now embarrassingly throw most of the data away (for now)
     return full[['LON', 'LAT', 'TIMESTAMP']].values
+
+
+def pacific(ptv):
+    # Better for the Pacific
+    ptv[:, 0] = ptv[:, 0] % 360
+    return ptv
 
 
 def plot_path(ptv_matrix):

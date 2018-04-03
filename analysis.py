@@ -1,4 +1,6 @@
 # Have a look at what we've got
+#
+# Work in Lon-Lat (x,y)
 
 import boat
 import satellite
@@ -7,15 +9,36 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Boat info: position (lonlat), time, velocity
 boat_filepath = './Data/exportvesseltrack477620900.csv'
 ptv = boat.load_MarineTraffic_csv(boat_filepath)
+ptv = boat.pacific(ptv)
+ptv = boat.interpolate_positions_times_velocities(ptv)
 
+# Satellite info:
+# # 'ColumnAmountSO2_PBL', 'Date', 'Latitude', 'Longitude',
+# # 'QualityFlags_PBL', 'RadiativeCloudFraction', 'SolarZenithAngle', 'Time'
 aura_filepath = '../LoserShips/backup2018.csv'
 s_pd = pd.read_csv(aura_filepath)
+num_satellite_readings = s_pd.shape[0]
 chk = s_pd['ColumnAmountSO2_PBL'] >= 0
 s_pd = s_pd[chk]
+s_pd = satellite.pacific(s_pd)
+print("Keeping {%0.2f)% of satellite readings (non-zero)".format(s_pd.shape[0]/num_satellite_readings))
+num_satellite_readings = s_pd.shape[0]
+
+# Identify useful satellite readings
+s_pd = satellite.restrict_area_basic(s_pd, np.min(ptv[:, 0]), np.max(ptv[:, 0]), np.min(ptv[:, 1]), np.max(ptv[:, 1]))
+ds = np.abs(s_pd["Latitude"].values[:, None] - ptv[:, 1:2].T)
+idx = ds < (2000. * 1000. / np.sqrt(satellite.LAT_ADJ2))
+print("Keeping {0:.2f}% of satellite readings (Latitude nearby)".format(100*sum(np.any(idx, axis=1))/num_satellite_readings))
+
+
 
 ss = satellite.convert_satellite_pandas(s_pd)
+
+
+
 ds = satellite.boat_satellite_distance(ptv, ss)
 pos = satellite.find_min_idx(ds)
 s_closest, so2, idx = satellite.investigate_interesting_boat_position(ptv[pos[0], :], s_pd, pos[1])
