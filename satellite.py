@@ -28,13 +28,16 @@ def so2dispersion_distance2_simple(b_vec, s_vec):
         return 1267650600228229401496703205376 #very far away
     else:
         # use rough calc of a metre
-        lon_adjustment2 = lon_adj2(s_vec[1])
-        diff_vec = b_vec-s_vec
-        return np.dot(np.dot(diff_vec, np.diag([lon_adjustment2, LAT_ADJ2, TIME_ADJ2])), diff_vec.T)
+        return distance2_simple(b_vec[:2], s_vec[:2])
+
+
+def boat_satellite_so2distance(bs, ss):
+    ds = scipy.spatial.distance.cdist(bs[:, :3], ss[:, :3], so2dispersion_distance2_simple)
+    return np.sqrt(ds)
 
 
 def boat_satellite_distance(bs, ss):
-    ds = scipy.spatial.distance.cdist(bs[:, :3], ss[:, :3], so2dispersion_distance2_simple)
+    ds = scipy.spatial.distance.cdist(bs[:, :2], ss[:, :2], distance2_simple)
     return np.sqrt(ds)
 
 

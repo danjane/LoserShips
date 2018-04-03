@@ -84,7 +84,7 @@ def interpolate_linear_position(startlon, startlat, starttime, endlon, endlat, e
     velocities[-1, :] = [speed * np.sin(az21), speed * np.cos(az21)]
 
     # Output array
-    return np.concatenate((lonlats[:, [1, 0]], times[:, None], velocities), axis=1)
+    return np.concatenate((lonlats, times[:, None], velocities), axis=1)
 
 
 def load_MarineTraffic_csv(filepath):

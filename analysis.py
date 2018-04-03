@@ -24,16 +24,23 @@ num_satellite_readings = s_pd.shape[0]
 chk = s_pd['ColumnAmountSO2_PBL'] >= 0
 s_pd = s_pd[chk]
 s_pd = satellite.pacific(s_pd)
-print("Keeping {%0.2f)% of satellite readings (non-zero)".format(s_pd.shape[0]/num_satellite_readings))
+print("Keeping {0:.2f}% of satellite readings (non-negative)".format(s_pd.shape[0]/num_satellite_readings))
 num_satellite_readings = s_pd.shape[0]
 
 # Identify useful satellite readings
 s_pd = satellite.restrict_area_basic(s_pd, np.min(ptv[:, 0]), np.max(ptv[:, 0]), np.min(ptv[:, 1]), np.max(ptv[:, 1]))
+ds = np.abs(s_pd["Latitude"].values[:, None] - ptv[:, 1:2].T) * np.sqrt(satellite.LAT_ADJ2)
+idx = ds < 2000. * 1000.
+sidx = np.any(idx, axis=1)
+print("Keeping {0:.2f}% of satellite readings (Latitude nearby)".format(100*sum(sidx)/num_satellite_readings))
+s_pd = s_pd[sidx]
+ds = ds[sidx, :]
+idx = idx[sidx, :]
+
 ds = np.abs(s_pd["Latitude"].values[:, None] - ptv[:, 1:2].T)
-idx = ds < (2000. * 1000. / np.sqrt(satellite.LAT_ADJ2))
-print("Keeping {0:.2f}% of satellite readings (Latitude nearby)".format(100*sum(np.any(idx, axis=1))/num_satellite_readings))
 
-
+# Way too slow
+# ds = satellite.boat_satellite_distance(ptv[:, 0:2], s_pd[['Longitude', 'Latitude']].values)
 
 ss = satellite.convert_satellite_pandas(s_pd)
 
