@@ -22,6 +22,11 @@ def distance2_simple(b_lonlat, s_lonlat):
         return np.dot(np.dot(diff_vec, np.diag([lon_adjustment2, LAT_ADJ2])), diff_vec.T)
 
 
+def geod_distance(xlon, xlat, ylon, ylat):
+    (az12, az21, dist) = wgs84_geod.inv(xlon, xlat, ylon, ylat)
+    return dist
+
+
 def so2dispersion_distance2_simple(b_vec, s_vec):
     if s_vec[2] < b_vec[2]:
         # satellite took reading before boat was there
