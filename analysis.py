@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 boat_filepath = './Data/exportvesseltrack477620900.csv'
 ptv = boat.load_MarineTraffic_csv(boat_filepath)
 
-aura_filepath = '../LoserShips/backup2018.csv'
+aura_filepath = './Data/OMI_processed.csv'
 s_pd = pd.read_csv(aura_filepath)
 chk = s_pd['ColumnAmountSO2_PBL'] >= 0
 s_pd = s_pd[chk]
@@ -40,6 +40,8 @@ ax.set_title('Histogram of SO2 detected in PBL\naround Lon {0:.2f}, Lat {1:.2f}'
 
 # Tweak spacing to prevent clipping of ylabel
 fig.tight_layout()
+
+plt.savefig('test_so2distribution.pdf')
 
 plt.ion()
 plt.show()
