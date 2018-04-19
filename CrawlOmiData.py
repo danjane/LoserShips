@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import numpy.matlib
 import pydap.cas.urs
-import urllib.request
+import pydap.client
+import urllib
 import bs4
 import re
 import os
@@ -32,7 +33,7 @@ def nasa_times_from_dataset():
     return nasa_data_tolist(t)
 
 
-year = 2018
+year = 2016
 
 filename = 'so2data_hot_{}.csv'.format(year)
 filename_backup = 'backup{}.csv'.format(year)
@@ -53,15 +54,16 @@ for day in range(firstday, 365):
     url = url_year + str(day+1).zfill(3) + '/'
 
     print('{}\n{}'.format(date, url))
-    resp = urllib.request.urlopen(url)
+    resp = urllib.urlopen(url)
 
     # Use BeautifulSoup to parse the html looking for the he5.html links
-    soup = bs4.BeautifulSoup(resp, from_encoding=resp.info().getparam('charset'))
+    soup = bs4.BeautifulSoup(resp, "html.parser", from_encoding=resp.info().getparam('charset'))
     links = []
     for link in soup.find_all('a', href=lambda href: href and re.compile('he5\.html').search(href)):
         links.append(link.getText())
 
     # Just need a unique set of links, without the html orphan
+    links = [link.strip() for link in links]
     links = set(links) - set([u'html'])
 
     # Bring in all the data for this day
@@ -103,6 +105,7 @@ for day in range(firstday, 365):
 
 
             except:
+                print('Failed, having a sleep for {} secs then trying again'.format(backoff_delay))
                 time.sleep(backoff_delay)
                 backoff_delay *= 2
 
