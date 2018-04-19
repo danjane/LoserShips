@@ -33,34 +33,37 @@ def datetime2matlabdn(dt):
 
 
 def interpolate_positions_times_velocities(ptv_matrix):
-    interpolated_ptvs = []
+    interpolated_ptvs = [ptv_matrix[:1, :]]
     for idx in range(ptv_matrix.shape[0]-1):
         # Loop down pairs doing a linear interpolation
-        startlat, startlong, starttime = ptv_matrix[idx, :3]
-        endlat, endlong, endtime = ptv_matrix[idx+1, :3]
+        startlon, startlat, starttime = ptv_matrix[idx, :3]
+        endlon, endlat, endtime = ptv_matrix[idx+1, :3]
 
-        interpolated_ptvs.append(
-            interpolate_linear_position(startlat, startlong, starttime, endlat, endlong, endtime))
+        temp_ptv = interpolate_linear_position(startlon, startlat, starttime, endlon, endlat, endtime)
+        interpolated_ptvs.append(temp_ptv[1:, :])  # drop first one, otherwise repeat
 
-        #print("{}".format(interpolated_ptvs[-1].shape))
+        # print("{}".format(interpolated_ptvs[-1].shape))
 
-    #pickle.dump(interpolated_ptvs, open('ina.pickle', "wb"))
+    # pickle.dump(interpolated_ptvs, open('ina.pickle', "wb"))
+
+    # hack: need the speed for the first reading
+    interpolated_ptvs[0] = np.concatenate([interpolated_ptvs[0], interpolated_ptvs[1][0:1, 3:]], axis=1)
     return np.concatenate(interpolated_ptvs, axis=0)
 
 
-def interpolate_linear_position(startlat, startlong, starttime, endlat, endlong, endtime):
+def interpolate_linear_position(startlon, startlat, starttime, endlon, endlat, endtime):
     # Intermediate locations
     g = pyproj.Geod(ellps='WGS84')
-    (az12, az21, dist) = g.inv(startlong, startlat, endlong, endlat)
+    (az12, az21, dist) = g.inv(startlon, startlat, endlon, endlat)
 
     dist /= 1000.  # switch to km
-    # calculate line string along path with segments <= 1 km
-    lonlats = g.npts(startlong, startlat, endlong, endlat,
-                     1 + int(dist))
+    # calculate line string along path with segments <= 10 km
+    lonlats = g.npts(startlon, startlat, endlon, endlat,
+                     1 + int(dist/10.))
 
     # npts doesn't include start/end points, so prepend/append them
-    lonlats.insert(0, (startlong, startlat))
-    lonlats.append((endlong, endlat))
+    lonlats.insert(0, (startlon, startlat))
+    lonlats.append((endlon, endlat))
     lonlats = np.asarray(lonlats)  # warning! still y-x (=lon,lat)
 
     # Intermediate times
@@ -81,7 +84,7 @@ def interpolate_linear_position(startlat, startlong, starttime, endlat, endlong,
     velocities[-1, :] = [speed * np.sin(az21), speed * np.cos(az21)]
 
     # Output array
-    return np.concatenate((lonlats[:, [1, 0]], times[:, None], velocities), axis=1)
+    return np.concatenate((lonlats, times[:, None], velocities), axis=1)
 
 
 def load_MarineTraffic_csv(filepath):
@@ -97,6 +100,12 @@ def load_MarineTraffic_csv(filepath):
 
     # Now embarrassingly throw most of the data away (for now)
     return full[['LON', 'LAT', 'TIMESTAMP']].values
+
+
+def pacific(ptv):
+    # Better for the Pacific
+    ptv[:, 0] = ptv[:, 0] % 360
+    return ptv
 
 
 def plot_path(ptv_matrix):

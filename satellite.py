@@ -11,15 +11,20 @@ import pyproj
 import matplotlib.pyplot as plt
 
 
-def lat_adj2(lat_degrees):
-    return EQUATOR_LAT_ADJ2 * np.cos(np.deg2rad(lat_degrees))**2
+def lon_adj2(lat_degrees):
+    return EQUATOR_LON_ADJ2 * np.cos(np.deg2rad(lat_degrees))**2
 
 
 def distance2_simple(b_lonlat, s_lonlat):
         # use rough calc of a metre
-        lat_adjustment2 = lat_adj2(s_lonlat[1])
+        lon_adjustment2 = lon_adj2(s_lonlat[1])
         diff_vec = b_lonlat-s_lonlat
-        return np.dot(np.dot(diff_vec, np.diag([lat_adjustment2, LON_ADJ2])), diff_vec.T)
+        return np.dot(np.dot(diff_vec, np.diag([lon_adjustment2, LAT_ADJ2])), diff_vec.T)
+
+
+def geod_distance(xlon, xlat, ylon, ylat):
+    (az12, az21, dist) = wgs84_geod.inv(xlon, xlat, ylon, ylat)
+    return dist
 
 
 def so2dispersion_distance2_simple(b_vec, s_vec):
@@ -28,13 +33,16 @@ def so2dispersion_distance2_simple(b_vec, s_vec):
         return 1267650600228229401496703205376 #very far away
     else:
         # use rough calc of a metre
-        lat_adjustment2 = lat_adj2(s_vec[1])
-        diff_vec = b_vec-s_vec
-        return np.dot(np.dot(diff_vec, np.diag([lat_adjustment2, LON_ADJ2, TIME_ADJ2])), diff_vec.T)
+        return distance2_simple(b_vec[:2], s_vec[:2])
+
+
+def boat_satellite_so2distance(bs, ss):
+    ds = scipy.spatial.distance.cdist(bs[:, :3], ss[:, :3], so2dispersion_distance2_simple)
+    return np.sqrt(ds)
 
 
 def boat_satellite_distance(bs, ss):
-    ds = scipy.spatial.distance.cdist(bs[:, :3], ss[:, :3], so2dispersion_distance2_simple)
+    ds = scipy.spatial.distance.cdist(bs[:, :2], ss[:, :2], distance2_simple)
     return np.sqrt(ds)
 
 
@@ -50,6 +58,22 @@ def convert_satellite_pandas(s_pd):
     time = time.values + s_pd['Time'].values/24/60/60
 
     return np.concatenate([pos, time[:, None]], axis=1)
+
+
+def pacific(s_pd):
+    # Better for the Pacific
+    s_pd['Longitude'] = s_pd['Longitude'] % 360
+    return s_pd
+
+
+def restrict_area_basic(s_pd, min_lon, max_lon, min_lat, max_lat):
+    leeway = 1000 #km
+    idx = np.ones((s_pd.shape[0],), dtype=bool)
+    idx[s_pd['Longitude'] < min_lon - leeway / 111.] = False
+    idx[s_pd['Longitude'] > max_lon + leeway / 111.] = False
+    idx[s_pd['Latitude'] < min_lat - leeway / 111.] = False
+    idx[s_pd['Latitude'] > max_lat + leeway / 111.] = False
+    return s_pd[idx]
 
 
 def investigate_interesting_boat_position(b_vec, s_pd, idx_closest):
@@ -84,6 +108,6 @@ def find_min_idx(x):
 
 
 wgs84_geod = pyproj.Geod(ellps='WGS84')
-EQUATOR_LAT_ADJ2 = 111412.84**2
-LON_ADJ2 = 111132.92**2
+EQUATOR_LON_ADJ2 = 111412.84**2
+LAT_ADJ2 = 111132.92**2
 TIME_ADJ2 = (24 * 1000)**2 #one hour about a km
