@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import numpy.matlib
 import pydap.cas.urs
-import urllib2
+import urllib.request
 import bs4
 import re
 import os
@@ -32,27 +32,28 @@ def nasa_times_from_dataset():
     return nasa_data_tolist(t)
 
 
-filename = 'so2data_hot_2014.csv'
-filename_backup = 'backup2014.csv'
+year = 2018
 
+filename = 'so2data_hot_{}.csv'.format(year)
+filename_backup = 'backup{}.csv'.format(year)
 
 # Pick up where we left off if possible
 if os.path.isfile(filename_backup):
     df_year = pd.read_csv(filename_backup)
     df_year['Date'] = [datetime.datetime.strptime(dstr, "%Y-%m-%d").date() for dstr in df_year['Date']]
-    firstday = (max(df_year['Date'])-datetime.date(2014, 1, 1)).days + 1
+    firstday = (max(df_year['Date'])-datetime.date(year, 1, 1)).days + 1
 else:
     df_year = pd.DataFrame({'Date': []})
     firstday = 0
 
 # connect to a URL
-url_year = 'https://aura.gesdisc.eosdis.nasa.gov/opendap/Aura_OMI_Level2/OMSO2.003/2014/'
+url_year = 'https://aura.gesdisc.eosdis.nasa.gov/opendap/Aura_OMI_Level2/OMSO2.003/{}/'.format(year)
 for day in range(firstday, 365):
-    date = datetime.date(2014, 1, 1) + datetime.timedelta(days=day)
+    date = datetime.date(year, 1, 1) + datetime.timedelta(days=day)
     url = url_year + str(day+1).zfill(3) + '/'
 
     print('{}\n{}'.format(date, url))
-    resp = urllib2.urlopen(url)
+    resp = urllib.request.urlopen(url)
 
     # Use BeautifulSoup to parse the html looking for the he5.html links
     soup = bs4.BeautifulSoup(resp, from_encoding=resp.info().getparam('charset'))
@@ -62,7 +63,6 @@ for day in range(firstday, 365):
 
     # Just need a unique set of links, without the html orphan
     links = set(links) - set([u'html'])
-    links = [link.strip('\n') for link in links]
 
     # Bring in all the data for this day
     dfs = []
