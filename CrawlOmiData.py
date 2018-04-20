@@ -111,12 +111,12 @@ for day in range(firstday, 365):
 
             else:
                 break
+    if dfs:
+        df_oneday = pd.concat(dfs, ignore_index=True)
+        df_oneday['Date'] = date
 
-    df_oneday = pd.concat(dfs, ignore_index=True)
-    df_oneday['Date'] = date
-
-    df_year = pd.concat([df_year, df_oneday], ignore_index=True)
-    df_year.to_csv(filename_backup, index=False)
+        df_year = pd.concat([df_year, df_oneday], ignore_index=True)
+        df_year.to_csv(filename_backup, index=False)
 
 # Now store a more manageable csv of the hot results
 # Just the high readings
