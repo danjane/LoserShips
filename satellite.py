@@ -107,6 +107,14 @@ def find_min_idx(x):
     return k // ncol, k % ncol
 
 
+def missing_dates(df):
+    dates = np.unique(df['Date'])
+    dates = [datetime.datetime.strptime(date_str, '%Y-%m-%d') for date_str in dates]
+    dates = np.sort(dates)
+    all_dates = pd.date_range(dates[0], dates[-1])
+    return set(all_dates) - set(dates)
+
+
 wgs84_geod = pyproj.Geod(ellps='WGS84')
 EQUATOR_LON_ADJ2 = 111412.84**2
 LAT_ADJ2 = 111132.92**2
