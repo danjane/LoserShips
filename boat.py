@@ -102,6 +102,21 @@ def load_MarineTraffic_csv(filepath):
     return full[['LON', 'LAT', 'TIMESTAMP']].values
 
 
+def load_UMAS_csv(filepath):
+    # filepath = './Data/exportvesseltrack477620900.csv'
+    full = pd.read_csv(filepath, skipinitialspace=True)
+
+    # Convert timestamp from string to Matlab datenum
+    timestamp2matlabdn = lambda x: datetime2matlabdn(
+        datetime.datetime.strptime(x, '%d/%m/%Y %H:%M'))
+    full['time'] = full['time'].apply(timestamp2matlabdn)
+
+    full = full.sort_values(by='time', ascending=False)
+    full.drop_duplicates(subset='time', inplace=True)
+
+    # Now embarrassingly throw most of the data away (for now)
+    return full[['longitude', 'latitude', 'time']].values
+
 def pacific(ptv):
     # Better for the Pacific
     ptv[:, 0] = ptv[:, 0] % 360
