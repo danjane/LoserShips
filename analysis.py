@@ -28,7 +28,7 @@ def p_value_of_smoke_distribution(so2_no_smoke, so2_smoke):
 def smoke(s_near, b_near, ds):
     # Identify pairs just after boat has passed
     smoke_idx = np.ones((b_near.shape[0],), dtype=bool)
-    smoke_idx[ds > 10000] = False
+    smoke_idx[ds > 50. * 1000.] = False
     smoke_idx[s_near[:, 2] - b_near[:, 2] < 0] = False  # boat is after satellite!
     smoke_idx[s_near[:, 2] - b_near[:, 2] > 1] = False  # more than a day later
 
@@ -75,10 +75,10 @@ if __name__ == "__main__":
     print("Loading data...")
 
     # Boat info: position(lonlat), time, velocity
-    boat_filepath = './Data/exportvesseltrack477620900.csv'
-    ptv = boat.load_MarineTraffic_csv(boat_filepath)
-    # boat_filepath = './Data/vlcc_pacific_path.csv'
-    # ptv = boat.load_UMAS_csv(boat_filepath)
+    # boat_filepath = './Data/exportvesseltrack477620900.csv'
+    # ptv = boat.load_MarineTraffic_csv(boat_filepath)
+    boat_filepath = './Data/vlcc_pacific_path.csv'
+    ptv = boat.load_UMAS_csv(boat_filepath)
 
 
     ptv = boat.interpolate_positions_times_velocities(ptv)
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     # Satellite info:
     # # 'ColumnAmountSO2_PBL', 'Date', 'Latitude', 'Longitude',
     # # 'QualityFlags_PBL', 'RadiativeCloudFraction', 'SolarZenithAngle', 'Time'
-    aura_filepath = '../LoserShips/backup2018.csv'
+    aura_filepath = '../LoserShips/backup2014.csv'
     s_pd = pd.read_csv(aura_filepath)
     print("Number of boat-satellite position pairs: {0:.2g}".format(ptv.shape[0] * s_pd.shape[0]))
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     s_pd = satellite.pacific(s_pd)
     ptv = boat.pacific(ptv)
 
-    max_dist = 200  # km
+    max_dist = 50  # km
     print("Restricting to close ({}km) Lat pairs...".format(max_dist))
 
     # This is a '1d' reduction, keeping just the satellite data near the boat path
@@ -127,23 +127,27 @@ if __name__ == "__main__":
     ds = ds[idx_2d]
 
     # Big step now, will list all the pairs...
-    # ...this may create duplicates of satellite and/or boat data, so could explode.
+    # ...this will (almost certainly) create duplicate rows of satellite and/or boat data, so could explode.
     idx = idx[idx_2d]
     (s_idx, b_idx) = idx.nonzero()
     assert (s_idx.shape[0] < 1e6), "Still too many pairs to handle!!"
 
     s_near = satellite.convert_satellite_pandas(s_pd.iloc[s_idx])
+    ptv = ptv[b_idx, :]
 
     # Calculate geodesic distances for these pairs
     pickle.dump((ptv, s_near), open('ina.pickle', "wb"))
-    lon_lats = np.concatenate((ptv[b_idx, :2], s_near[:, :2]), axis=1)
+    lon_lats = np.concatenate((ptv[:, :2], s_near[:, :2]), axis=1)
     ds = np.array([satellite.geod_distance(*row) for row in lon_lats])
     print("Shortest distance: {0:.2f}".format(np.min(ds)))
 
     # Identify satellite readings taken just after the boat has passed
-    smoke_idx_pairs = smoke(s_near, ptv[b_idx, :], ds)
-    print("Number of     smoke pairs: {}".format(smoke_idx_pairs.shape[0]))
-    print("Number of non-smoke pairs: {}".format(ds.shape[0] - smoke_idx_pairs.shape[0]))
+    smoke_idx_pairs = smoke(s_near, ptv, ds)
+    num_smoke = np.sum(smoke_idx_pairs)
+    num_no_smoke = ds.shape[0] - num_smoke
+
+    print("Number of     smoke pairs: {}".format(num_smoke))
+    print("Number of non-smoke pairs: {}".format(num_no_smoke))
     smoke_idx = np.zeros((s_pd.shape[0],), dtype=bool)
     smoke_idx[np.unique(s_idx[smoke_idx_pairs])] = True
 
@@ -151,7 +155,7 @@ if __name__ == "__main__":
     so2_smoke = s_pd.iloc[smoke_idx]['ColumnAmountSO2_PBL'].values
     so2_no_smoke = s_pd.iloc[np.logical_not(smoke_idx)]['ColumnAmountSO2_PBL'].values
 
-    if so2_smoke.shape[0] * so2_no_smoke.shape[0]:
+    if num_smoke * num_no_smoke:
         plot(so2_no_smoke, so2_smoke)
 
 
