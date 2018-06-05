@@ -57,7 +57,9 @@ def convert_satellite_pandas(s_pd):
     time = s_pd['Date'].apply(timestamp2matlabdn)
     time = time.values + s_pd['Time'].values/24/60/60
 
-    return np.concatenate([pos, time[:, None]], axis=1)
+    so2 = s_pd['ColumnAmountSO2_PBL'].values
+
+    return np.concatenate([pos, time[:, None], so2[:, None]], axis=1)
 
 
 def pacific(s_pd):

@@ -45,8 +45,8 @@ def plot(so2_no_smoke, so2_smoke, plot_name='test2.pdf'):
 
     ax.set_xlabel('SO2 detected in PBL')
     ax.set_ylabel('Probability density')
-    ax.set_title('Histogram of SO2 detected in PBL, p-value {0:.4f}'.format(
-        p_value_of_smoke_distribution(so2_no_smoke, so2_smoke)))
+    pval = p_value_of_smoke_distribution(so2_no_smoke, so2_smoke)
+    ax.set_title('Histogram of SO2 detected in PBL, p-value {0:.4f}'.format(pval))
 
     # Tweak spacing to prevent clipping of ylabel
     fig.tight_layout()
@@ -55,6 +55,8 @@ def plot(so2_no_smoke, so2_smoke, plot_name='test2.pdf'):
     plt.show()
     plt.pause(0.001)
     plt.savefig(plot_name)
+
+    return pval
 
 
 def reduce_amount_of_boat_and_satellite_data(ptv, s_pd, idx):
@@ -75,10 +77,10 @@ if __name__ == "__main__":
     print("Loading data...")
 
     # Boat info: position(lonlat), time, velocity
-    # boat_filepath = './Data/exportvesseltrack477620900.csv'
-    # ptv = boat.load_MarineTraffic_csv(boat_filepath)
-    boat_filepath = './Data/vlcc_pacific_path.csv'
-    ptv = boat.load_UMAS_csv(boat_filepath)
+    boat_filepath = './Data/exportvesseltrack477620900.csv'
+    ptv = boat.load_MarineTraffic_csv(boat_filepath)
+    #boat_filepath = './Data/vlcc_pacific_path.csv'
+    #ptv = boat.load_UMAS_csv(boat_filepath)
 
 
     ptv = boat.interpolate_positions_times_velocities(ptv)
@@ -86,7 +88,7 @@ if __name__ == "__main__":
     # Satellite info:
     # # 'ColumnAmountSO2_PBL', 'Date', 'Latitude', 'Longitude',
     # # 'QualityFlags_PBL', 'RadiativeCloudFraction', 'SolarZenithAngle', 'Time'
-    aura_filepath = '../LoserShips/backup2014.csv'
+    aura_filepath = '../LoserShips/backup2018.csv'
     s_pd = pd.read_csv(aura_filepath)
     print("Number of boat-satellite position pairs: {0:.2g}".format(ptv.shape[0] * s_pd.shape[0]))
 
@@ -111,7 +113,7 @@ if __name__ == "__main__":
     s_pd = satellite.restrict_area_basic(s_pd, np.min(ptv[:, 0]), np.max(ptv[:, 0]), np.min(ptv[:, 1]),
                                              np.max(ptv[:, 1]))
 
-    # First full blown 2d construction, so a massive array. Hold on to your seatbelts...
+    # First full blown 2d construction, so a massive array. Fasten your seat belts...
     dLats = np.abs(s_pd["Latitude"].values[:, None] - ptv[:, 1:2].T) * np.sqrt(satellite.LAT_ADJ2)
     ptv, s_pd, idx_2d = reduce_amount_of_boat_and_satellite_data(ptv, s_pd, dLats < max_dist * 1000.)
     dLats = dLats[idx_2d]
@@ -139,23 +141,23 @@ if __name__ == "__main__":
     pickle.dump((ptv, s_near), open('ina.pickle', "wb"))
     lon_lats = np.concatenate((ptv[:, :2], s_near[:, :2]), axis=1)
     ds = np.array([satellite.geod_distance(*row) for row in lon_lats])
-    print("Shortest distance: {0:.2f}".format(np.min(ds)))
+    dist_idx = np.argsort(ds)
+    print("Shortest distance: {0:.2f}".format(ds[dist_idx[0]]))
 
     # Identify satellite readings taken just after the boat has passed
-    smoke_idx_pairs = smoke(s_near, ptv, ds)
-    num_smoke = np.sum(smoke_idx_pairs)
+    smoke_idx = smoke(s_near, ptv, ds)
+    num_smoke = np.sum(smoke_idx)
     num_no_smoke = ds.shape[0] - num_smoke
 
     print("Number of     smoke pairs: {}".format(num_smoke))
     print("Number of non-smoke pairs: {}".format(num_no_smoke))
-    smoke_idx = np.zeros((s_pd.shape[0],), dtype=bool)
-    smoke_idx[np.unique(s_idx[smoke_idx_pairs])] = True
 
     # General distribution of so2 values
-    so2_smoke = s_pd.iloc[smoke_idx]['ColumnAmountSO2_PBL'].values
-    so2_no_smoke = s_pd.iloc[np.logical_not(smoke_idx)]['ColumnAmountSO2_PBL'].values
+    so2_smoke = s_near[smoke_idx, -1]
+    so2_no_smoke = s_near[np.logical_not(smoke_idx), -1]
 
     if num_smoke * num_no_smoke:
-        plot(so2_no_smoke, so2_smoke)
+        pval = plot(so2_no_smoke, so2_smoke)
+        print("Distribution behind ship has different mean with p-value of {0:.4f}".format(pval))
 
 
