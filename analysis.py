@@ -25,17 +25,17 @@ def p_value_of_smoke_distribution(so2_no_smoke, so2_smoke):
     return p_value(np.mean(so2_smoke), so2_smoke.shape[0], np.mean(so2_no_smoke), so2_no_smoke.shape[0])
 
 
-def smoke(s_near, b_near, ds):
+def smoke(s_near, b_near, ds, max_dist):
     # Identify pairs just after boat has passed
     smoke_idx = np.ones((b_near.shape[0],), dtype=bool)
-    smoke_idx[ds > 50. * 1000.] = False
-    smoke_idx[s_near[:, 2] - b_near[:, 2] < 0] = False  # boat is after satellite!
-    smoke_idx[s_near[:, 2] - b_near[:, 2] > 1] = False  # more than a day later
+    smoke_idx[ds > max_dist * 1000.] = False
+    smoke_idx[(s_near[:, 2] - b_near[:, 2]) < -1./24.] = False  # boat is more than an hour before satellite!
+    smoke_idx[(s_near[:, 2] - b_near[:, 2]) > 1] = False  # more than a day later
 
     return smoke_idx
 
 
-def plot(so2_no_smoke, so2_smoke, plot_name='test2.pdf'):
+def plot(so2_no_smoke, so2_smoke, plot_name='test.pdf'):
     # Plot the results
     plt.style.use('seaborn-deep')
     fig, ax = plt.subplots()
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     s_pd = satellite.pacific(s_pd)
     ptv = boat.pacific(ptv)
 
-    max_dist = 50  # km
+    max_dist = 200  # km
     print("Restricting to close ({}km) Lat pairs...".format(max_dist))
 
     # This is a '1d' reduction, keeping just the satellite data near the boat path
@@ -132,20 +132,20 @@ if __name__ == "__main__":
     # ...this will (almost certainly) create duplicate rows of satellite and/or boat data, so could explode.
     idx = idx[idx_2d]
     (s_idx, b_idx) = idx.nonzero()
-    assert (s_idx.shape[0] < 1e6), "Still too many pairs to handle!!"
+    assert (s_idx.shape[0] < 2e6), "Still too many pairs to handle!!"
 
     s_near = satellite.convert_satellite_pandas(s_pd.iloc[s_idx])
     ptv = ptv[b_idx, :]
 
     # Calculate geodesic distances for these pairs
-    pickle.dump((ptv, s_near), open('ina.pickle', "wb"))
     lon_lats = np.concatenate((ptv[:, :2], s_near[:, :2]), axis=1)
     ds = np.array([satellite.geod_distance(*row) for row in lon_lats])
     dist_idx = np.argsort(ds)
     print("Shortest distance: {0:.2f}".format(ds[dist_idx[0]]))
 
     # Identify satellite readings taken just after the boat has passed
-    smoke_idx = smoke(s_near, ptv, ds)
+    smoke_idx = smoke(s_near, ptv, ds, max_dist)
+    pickle.dump((ptv, s_near, smoke_idx), open('ina.pickle', "wb"))
     num_smoke = np.sum(smoke_idx)
     num_no_smoke = ds.shape[0] - num_smoke
 
