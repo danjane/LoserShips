@@ -2,6 +2,8 @@
 ### Overview
 Shipping traffic is set to become the number one source of sulphur dioxide, a dangerous emission which causes respiratory problems and early death. Although the International Maritime Organisation has introduced legislation to cap sulphur in shipping fuels there is a strong financial incentive for rogue ships to cheat and currently no way to monitor ships at sea. Indeed, even at port most coastal agencies lack the necessary equipment to spot check fuel quality. I propose using atmospheric data from existing satellites along with the AIS ship positioning system to flag non-compliant ships before they reach port.
 
+[See poster for Geneva Health Conference 2018](https://drive.google.com/open?id=1pPFDvOD_bfh2KZ091nEAXmgLbN7IxNEf)
+
 ### Background
 Shipping traffic has increased by a factor of 5 since 1970: there are now more than 600,000 large vessels at sea. Boat is the most efficient transport method by weight and distance, but the efforts to curb emissions at sea have not kept apace with the advances on land. Ships traditionally burnt ‘bunker fuel’, a particularly cheap form of diesel with a relatively good engine performance due to a high content of sulphur. In the EU, for example, shipping emissions of sulphur dioxide are set to overtake land based emissions within two years and the total related healthcare cost will be around $60 billion. 
 
